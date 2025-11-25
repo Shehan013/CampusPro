@@ -1,26 +1,269 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
+} from 'react-native';
+import { router } from 'expo-router';
+import { useForm, Controller } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import { Feather } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
+import CustomInput from '@/components/CustomInput';
+import { signUpSchema } from '@/utils/validation';
+import { SignUpData } from '@/types';
+import { Spacing, BorderRadius, FontSizes, FontWeights } from '@/constants/theme';
 
 export default function SignUpScreen() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const { signUp } = useAuth();
+  const [loading, setLoading] = useState(false);
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<SignUpData>({
+    resolver: yupResolver(signUpSchema),
+    mode: 'onBlur',
+  });
+
+  const onSubmit = async (data: SignUpData) => {
+    try {
+      setLoading(true);
+      await signUp(data);
+      
+      Alert.alert(
+        'Verification Email Sent!',
+        'Please check your email and verify your account.',
+        [
+          {
+            text: 'OK',
+            onPress: () => router.replace('/(tabs)' as any),
+          },
+        ]
+      );
+    } catch (error: any) {
+      Alert.alert('Sign Up Failed', error.message || 'Something went wrong');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Text style={[styles.text, { color: colors.text }]}>
-        Sign Up Screen - Coming in next commit
-      </Text>
-    </View>
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={[styles.backButton, { backgroundColor: colors.surface }]}
+          >
+            <Feather name="arrow-left" size={24} color={colors.text} />
+          </TouchableOpacity>
+          
+          <Text style={[styles.title, { color: colors.text }]}>Create Account</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+            Sign up to get started with CampusPro
+          </Text>
+        </View>
+
+        {/* Form */}
+        <View style={styles.form}>
+          <Controller
+            control={control}
+            name="firstName"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <CustomInput
+                label="First Name"
+                placeholder="Enter your first name"
+                icon="user"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                error={errors.firstName?.message}
+                autoCapitalize="words"
+              />
+            )}
+          />
+
+          <Controller
+            control={control}
+            name="lastName"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <CustomInput
+                label="Last Name"
+                placeholder="Enter your last name"
+                icon="user"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                error={errors.lastName?.message}
+                autoCapitalize="words"
+              />
+            )}
+          />
+
+          <Controller
+            control={control}
+            name="email"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <CustomInput
+                label="Email"
+                placeholder="Enter your email"
+                icon="mail"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                error={errors.email?.message}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            )}
+          />
+
+          <Controller
+            control={control}
+            name="password"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <CustomInput
+                label="Password"
+                placeholder="Create a password"
+                icon="lock"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                error={errors.password?.message}
+                isPassword
+                autoCapitalize="none"
+              />
+            )}
+          />
+
+          <Controller
+            control={control}
+            name="confirmPassword"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <CustomInput
+                label="Confirm Password"
+                placeholder="Re-enter your password"
+                icon="lock"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                error={errors.confirmPassword?.message}
+                isPassword
+                autoCapitalize="none"
+              />
+            )}
+          />
+        </View>
+
+        {/* Sign Up Button */}
+        <TouchableOpacity
+          style={[
+            styles.signUpButton,
+            { backgroundColor: colors.primary },
+            loading && styles.buttonDisabled,
+          ]}
+          onPress={handleSubmit(onSubmit)}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.signUpButtonText}>Sign Up</Text>
+          )}
+        </TouchableOpacity>
+
+        {/* Already have account */}
+        <View style={styles.footer}>
+          <Text style={[styles.footerText, { color: colors.textSecondary }]}>
+            Already have an account?{' '}
+          </Text>
+          <TouchableOpacity onPress={() => router.push('/auth/login' as any)}>
+            <Text style={[styles.footerLink, { color: colors.primary }]}>
+              Login
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.xxl + Spacing.lg,
+    paddingBottom: Spacing.xl,
+  },
+  header: {
+    marginBottom: Spacing.xl,
+  },
+  backButton: {
+    width: 48,
+    height: 48,
+    borderRadius: BorderRadius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+  },
+  title: {
+    fontSize: FontSizes.xxxl,
+    fontWeight: FontWeights.bold,
+    marginBottom: Spacing.xs,
+  },
+  subtitle: {
+    fontSize: FontSizes.md,
+    fontWeight: FontWeights.regular,
+  },
+  form: {
+    marginBottom: Spacing.lg,
+  },
+  signUpButton: {
+    height: 56,
+    borderRadius: BorderRadius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  signUpButtonText: {
+    color: '#FFFFFF',
+    fontSize: FontSizes.lg,
+    fontWeight: FontWeights.semibold,
+  },
+  footer: {
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  text: {
-    fontSize: 18,
+  footerText: {
+    fontSize: FontSizes.md,
+    fontWeight: FontWeights.regular,
+  },
+  footerLink: {
+    fontSize: FontSizes.md,
+    fontWeight: FontWeights.semibold,
   },
 });
