@@ -6,7 +6,7 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
-  photoURL?: string;
+  photoURL?: string | null;
   createdAt: string;
   emailVerified: boolean;
 }

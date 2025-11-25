@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: data.email,
         firstName: data.firstName,
         lastName: data.lastName,
-        photoURL: userCredential.user.photoURL || undefined,
+        photoURL: userCredential.user.photoURL || null,
         createdAt: new Date().toISOString(),
         emailVerified: false,
       };

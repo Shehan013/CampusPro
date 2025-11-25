@@ -21,7 +21,6 @@ if (getApps().length === 0) {
 }
 
 // Initialize Firebase Authentication
-// For Expo/React Native, we use getAuth() directly
 const auth = getAuth(app);
 
 // Initialize Firestore Database
