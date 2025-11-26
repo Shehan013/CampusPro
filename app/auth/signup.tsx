@@ -20,6 +20,7 @@ import CustomInput from '@/components/CustomInput';
 import { signUpSchema } from '@/utils/validation';
 import { SignUpData } from '@/types';
 import { Spacing, BorderRadius, FontSizes, FontWeights } from '@/constants/theme';
+import { handleError } from '../../utils/errorHandler';
 
 export default function SignUpScreen() {
   const { colors, isDark } = useTheme();
@@ -51,7 +52,8 @@ export default function SignUpScreen() {
         ]
       );
     } catch (error: any) {
-      Alert.alert('Sign Up Failed', error.message || 'Something went wrong');
+      const errorMessage = handleError(error, 'Sign Up');
+      Alert.alert('Sign Up Failed', errorMessage);
     } finally {
       setLoading(false);
     }

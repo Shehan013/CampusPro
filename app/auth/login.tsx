@@ -20,6 +20,7 @@ import CustomInput from '@/components/CustomInput';
 import { loginSchema } from '@/utils/validation';
 import { LoginData } from '@/types';
 import { Spacing, BorderRadius, FontSizes, FontWeights } from '@/constants/theme';
+import { handleError } from '../../utils/errorHandler';
 
 export default function LoginScreen() {
   const { colors } = useTheme();
@@ -41,7 +42,8 @@ export default function LoginScreen() {
       await signIn(data);
       router.replace('/(tabs)' as any);
     } catch (error: any) {
-      Alert.alert('Login Failed', error.message || 'Invalid email or password');
+      const errorMessage = handleError(error, 'Login');
+      Alert.alert('Login Failed', errorMessage);
     } finally {
       setLoading(false);
     }
