@@ -4,13 +4,13 @@ import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBzwslsNn2Zpo7lNFa6oXwUq7U-uVA-Jnk",
-  authDomain: "campuspro-a516b.firebaseapp.com",
-  projectId: "campuspro-a516b",
-  storageBucket: "campuspro-a516b.firebasestorage.app",
-  messagingSenderId: "783482001470",
-  appId: "1:783482001470:web:7ee5ad5a9c3bbc4bb9d96f",
-  measurementId: "G-9HVVQNENB6"
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase app (avoid re-initialization)
