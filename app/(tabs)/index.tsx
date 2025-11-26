@@ -9,6 +9,7 @@ import {
   StatusBar,
   ActivityIndicator,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
@@ -154,10 +155,21 @@ export default function HomeScreen() {
       <View style={[styles.header, { backgroundColor: colors.primary }]}>
         <View style={styles.headerLeft}>
           <TouchableOpacity
-            style={styles.iconButton}
+            style={styles.profileButton}
             onPress={() => router.push('/settings' as any)}
           >
-            <Feather name="user" size={22} color="#FFFFFF" />
+            {user?.photoURL ? (
+              <Image 
+                source={{ uri: user.photoURL }} 
+                style={styles.profileImage}
+              />
+            ) : (
+              <View style={styles.profilePlaceholder}>
+                <Text style={styles.profileInitial}>
+                  {(user?.firstName?.[0] || firebaseUser?.displayName?.[0] || 'U').toUpperCase()}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
           <View>
             <Text style={styles.greeting}>Hello, {user?.firstName || firebaseUser?.displayName?.split(' ')[0] || 'Student'}!</Text>
@@ -285,6 +297,30 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  profileButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    overflow: 'hidden',
+  },
+  profileImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+  },
+  profilePlaceholder: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileInitial: {
+    fontSize: FontSizes.lg,
+    fontWeight: FontWeights.bold,
+    color: '#FFFFFF',
   },
   searchContainer: {
     paddingHorizontal: Spacing.lg,
