@@ -57,8 +57,14 @@ export interface Event {
   date: string; 
   startTime: string;
   endTime: string;
+  location: string;
   description: string;
+  imageUrl?: string;
   isFavorite: boolean;
   isCompleted: boolean;
   createdAt: string;
+  updatedAt?: string;
 }
+
+// Event filter types
+export type EventFilter = 'all' | 'upcoming' | 'completed' | 'favorites';
