@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,22 +7,54 @@ import {
   TouchableOpacity,
   TextInput,
   StatusBar,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import EventCard from '@/components/EventCard';
 import { Event, EventFilter } from '@/types';
-import { sampleEvents } from '@/data/sampleEvents';
 import { Spacing, BorderRadius, FontSizes, FontWeights } from '@/constants/theme';
+import { getUserEvents, toggleFavorite } from '@/services/eventService';
 
 export default function HomeScreen() {
   const { colors, isDark, toggleTheme } = useTheme();
-  const { user } = useAuth();
+  const { user, firebaseUser } = useAuth();
   const [activeFilter, setActiveFilter] = useState<EventFilter>('upcoming');
   const [searchQuery, setSearchQuery] = useState('');
-  const [events, setEvents] = useState<Event[]>(sampleEvents);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Fetch events from Firestore
+  const fetchEvents = async () => {
+    const userId = user?.uid || firebaseUser?.uid;
+    if (!userId) return;
+    
+    try {
+      const userEvents = await getUserEvents(userId);
+      setEvents(userEvents);
+    } catch (error) {
+      console.error('Error fetching events:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // Load events on mount and when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchEvents();
+    }, [user, firebaseUser])
+  );
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchEvents();
+  };
 
   const filteredEvents = useMemo(() => {
     let filtered = [...events];
@@ -55,18 +87,34 @@ export default function HomeScreen() {
     return filtered;
   }, [events, activeFilter, searchQuery]);
 
-  const handleFavoriteToggle = (eventId: string) => {
-    setEvents(prevEvents =>
-      prevEvents.map(event =>
-        event.id === eventId ? { ...event, isFavorite: !event.isFavorite } : event
-      )
-    );
+  const handleFavoriteToggle = async (eventId: string) => {
+    const event = events.find(e => e.id === eventId);
+    if (!event) return;
+
+    try {
+      // Optimistically update UI
+      setEvents(prevEvents =>
+        prevEvents.map(e =>
+          e.id === eventId ? { ...e, isFavorite: !e.isFavorite } : e
+        )
+      );
+
+      // Update in Firestore
+      await toggleFavorite(eventId, event.isFavorite);
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      // Revert on error
+      setEvents(prevEvents =>
+        prevEvents.map(e =>
+          e.id === eventId ? { ...e, isFavorite: event.isFavorite } : e
+        )
+      );
+    }
   };
 
   const handleEventPress = (event: Event) => {
     // Navigate to event details
-    // router.push(`/event/${event.id}` as any);
-    console.log('Event pressed:', event.title);
+    router.push(`/event/${event.id}` as any);
   };
 
   const renderFilter = (filter: EventFilter, label: string, icon: keyof typeof Feather.glyphMap) => (
@@ -111,7 +159,7 @@ export default function HomeScreen() {
             <Feather name="user" size={22} color="#FFFFFF" />
           </TouchableOpacity>
           <View>
-            <Text style={styles.greeting}>Hello, {user?.firstName || 'Student'}!</Text>
+            <Text style={styles.greeting}>Hello, {user?.firstName || firebaseUser?.displayName?.split(' ')[0] || 'Student'}!</Text>
           </View>
         </View>
         <TouchableOpacity
@@ -149,32 +197,46 @@ export default function HomeScreen() {
       </View>
 
       {/* Events List */}
-      <FlatList
-        data={filteredEvents}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <EventCard
-            event={item}
-            onPress={() => handleEventPress(item)}
-            onFavoriteToggle={() => handleFavoriteToggle(item.id)}
-          />
-        )}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Feather name="calendar" size={64} color={colors.textMuted} />
-            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              No events found
-            </Text>
-            <Text style={[styles.emptySubtext, { color: colors.textMuted }]}>
-              {activeFilter === 'favorites'
-                ? 'Mark events as favorite to see them here'
-                : 'Create your first event to get started'}
-            </Text>
-          </View>
-        }
-      />
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#4A90E2" />
+        </View>
+      ) : (
+        <FlatList
+          data={filteredEvents}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <EventCard
+              event={item}
+              onPress={() => handleEventPress(item)}
+              onFavoriteToggle={() => handleFavoriteToggle(item.id)}
+            />
+          )}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#4A90E2']}
+              tintColor="#4A90E2"
+            />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Feather name="calendar" size={64} color={colors.textMuted} />
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                No events found
+              </Text>
+              <Text style={[styles.emptySubtext, { color: colors.textMuted }]}>
+                {activeFilter === 'favorites'
+                  ? 'Mark events as favorite to see them here'
+                  : 'Create your first event to get started'}
+              </Text>
+            </View>
+          }
+        />
+      )}
 
       {/* Floating Action Button */}
       <TouchableOpacity
@@ -278,6 +340,12 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
     textAlign: 'center',
     paddingHorizontal: Spacing.xl,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: Spacing.xxl * 2,
   },
   fab: {
     position: 'absolute',

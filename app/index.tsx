@@ -1,21 +1,9 @@
-import { useEffect } from 'react';
-import { Redirect, useRouter } from 'expo-router';
+import { Redirect } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { View, ActivityIndicator } from 'react-native';
 
 export default function Index() {
   const { user, loading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!loading) {
-      if (user) {
-        router.replace('/(tabs)' as any);
-      } else {
-        router.replace('/auth/welcome' as any);
-      }
-    }
-  }, [user, loading]);
 
   // Show loading spinner while checking auth state
   if (loading) {
@@ -26,6 +14,11 @@ export default function Index() {
     );
   }
 
-  // Fallback redirect
+  // Redirect based on auth state
+  if (user) {
+    return <Redirect href="/(tabs)" />;
+  }
+
   return <Redirect href="/auth/welcome" />;
 }
+
