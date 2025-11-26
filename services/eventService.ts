@@ -15,6 +15,7 @@ import {
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db } from '@/config/firebase';
 import { Event, EventType } from '@/types';
+import { handleError } from '../utils/errorHandler';
 
 const EVENTS_COLLECTION = 'events';
 
@@ -34,9 +35,8 @@ export interface UpdateEventData extends Partial<CreateEventData> {
   isCompleted?: boolean;
 }
 
-/**
- * Create a new event in Firestore
- */
+// Create a new event in Firestore
+
 export const createEvent = async (
   userId: string,
   eventData: CreateEventData
@@ -60,14 +60,11 @@ export const createEvent = async (
     const docRef = await addDoc(collection(db, EVENTS_COLLECTION), eventDoc);
     return docRef.id;
   } catch (error) {
-    console.error('Error creating event:', error);
-    throw new Error('Failed to create event');
+    throw new Error(handleError(error, 'Create Event'));
   }
 };
 
-/**
- * Get a single event by ID
- */
+// Get a single event by ID
 export const getEvent = async (eventId: string): Promise<Event | null> => {
   try {
     const eventDoc = await getDoc(doc(db, EVENTS_COLLECTION, eventId));
@@ -93,14 +90,11 @@ export const getEvent = async (eventId: string): Promise<Event | null> => {
       createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
     };
   } catch (error) {
-    console.error('Error getting event:', error);
-    throw new Error('Failed to get event');
+    throw new Error(handleError(error, 'Get Event'));
   }
 };
 
-/**
- * Get all events for a specific user
- */
+// Get all events for a specific user
 export const getUserEvents = async (userId: string): Promise<Event[]> => {
   try {
     const q = query(
@@ -135,14 +129,11 @@ export const getUserEvents = async (userId: string): Promise<Event[]> => {
 
     return events;
   } catch (error) {
-    console.error('Error getting user events:', error);
-    throw new Error('Failed to get events');
+    throw new Error(handleError(error, 'Get User Events'));
   }
 };
 
-/**
- * Update an existing event
- */
+// Update an existing event
 export const updateEvent = async (
   eventId: string,
   updates: UpdateEventData
@@ -154,20 +145,16 @@ export const updateEvent = async (
       updatedAt: serverTimestamp(),
     });
   } catch (error) {
-    console.error('Error updating event:', error);
-    throw new Error('Failed to update event');
+    throw new Error(handleError(error, 'Update Event'));
   }
 };
 
-/**
- * Delete an event
- */
+// Delete an event
 export const deleteEvent = async (eventId: string): Promise<void> => {
   try {
     await deleteDoc(doc(db, EVENTS_COLLECTION, eventId));
   } catch (error) {
-    console.error('Error deleting event:', error);
-    throw new Error('Failed to delete event');
+    throw new Error(handleError(error, 'Delete Event'));
   }
 };
 
@@ -181,14 +168,11 @@ export const toggleFavorite = async (
   try {
     await updateEvent(eventId, { isFavorite: !currentStatus });
   } catch (error) {
-    console.error('Error toggling favorite:', error);
-    throw new Error('Failed to toggle favorite');
+    throw new Error(handleError(error, 'Toggle Favorite'));
   }
 };
 
-/**
- * Toggle completed status
- */
+// Toggle completed status
 export const toggleCompleted = async (
   eventId: string,
   currentStatus: boolean
@@ -196,7 +180,6 @@ export const toggleCompleted = async (
   try {
     await updateEvent(eventId, { isCompleted: !currentStatus });
   } catch (error) {
-    console.error('Error toggling completed:', error);
-    throw new Error('Failed to toggle completed status');
+    throw new Error(handleError(error, 'Toggle Completed'));
   }
 };

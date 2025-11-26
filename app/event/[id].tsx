@@ -15,6 +15,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { Event } from '@/types';
 import { Spacing, BorderRadius, FontSizes, FontWeights } from '@/constants/theme';
 import { getEvent, deleteEvent, toggleFavorite, toggleCompleted } from '@/services/eventService';
+import { handleError } from '../../utils/errorHandler';
 
 export default function EventDetailsScreen() {
   const { colors } = useTheme();

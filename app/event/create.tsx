@@ -21,6 +21,7 @@ import CustomInput from '@/components/CustomInput';
 import { Event, EventType } from '@/types';
 import { Spacing, BorderRadius, FontSizes, FontWeights } from '@/constants/theme';
 import { createEvent } from '@/services/eventService';
+import { handleError } from '../../utils/errorHandler';
 
 const EVENT_TYPES: EventType[] = ['Assignment', 'Entertainment', 'Exam', 'Special', 'Sport', 'Industry Visit'];
 
@@ -124,8 +125,8 @@ export default function CreateEventScreen() {
         ]
       );
     } catch (error: any) {
-      console.error('Create event error:', error);
-      Alert.alert('Error', error.message || 'Failed to create event');
+      const errorMessage = handleError(error, 'Create Event');
+      Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
     }

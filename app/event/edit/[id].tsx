@@ -21,6 +21,7 @@ import CustomInput from '@/components/CustomInput';
 import { Event, EventType } from '@/types';
 import { Spacing, BorderRadius, FontSizes, FontWeights } from '@/constants/theme';
 import { getEvent, updateEvent } from '@/services/eventService';
+import { handleError } from '../../../utils/errorHandler';
 
 const EVENT_TYPES: EventType[] = ['Assignment', 'Entertainment', 'Exam', 'Special', 'Sport', 'Industry Visit'];
 

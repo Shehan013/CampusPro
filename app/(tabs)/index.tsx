@@ -18,6 +18,7 @@ import EventCard from '@/components/EventCard';
 import { Event, EventFilter } from '@/types';
 import { Spacing, BorderRadius, FontSizes, FontWeights } from '@/constants/theme';
 import { getUserEvents, toggleFavorite } from '@/services/eventService';
+import { handleError } from '../../utils/errorHandler';
 
 export default function HomeScreen() {
   const { colors, isDark, toggleTheme } = useTheme();
@@ -154,7 +155,7 @@ export default function HomeScreen() {
         <View style={styles.headerLeft}>
           <TouchableOpacity
             style={styles.iconButton}
-            onPress={() => router.push('/profile' as any)}
+            onPress={() => router.push('/settings' as any)}
           >
             <Feather name="user" size={22} color="#FFFFFF" />
           </TouchableOpacity>
