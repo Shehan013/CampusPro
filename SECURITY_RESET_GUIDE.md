@@ -1,6 +1,6 @@
 # Security Guide - Resetting Exposed Firebase API Keys
 
-## ⚠️ GitHub detected exposed Firebase API keys in the repository
+## GitHub detected exposed Firebase API keys in the repository
 
 ### Step 1: Reset Firebase API Key
 
@@ -36,7 +36,7 @@
 Since the API key is client-side and visible in the app, you must secure your Firebase project with proper security rules.
 
 #### Firestore Security Rules
-Already configured in `firestore.rules` - deployed ✅
+Already configured in `firestore.rules` - deployed
 
 #### Firebase Authentication
 1. Go to **Authentication** → **Settings** → **Authorized domains**
@@ -72,12 +72,12 @@ npm start -- --clear
 
 ### Step 6: Verify Security
 
-1. ✅ `.env` file is in `.gitignore`
-2. ✅ `config/firebase.ts` uses environment variables
-3. ✅ `.env.example` is committed (without real values)
-4. ✅ Firestore rules are properly configured
-5. ✅ Firebase API key has been reset
-6. ✅ Old API keys removed from Git history
+1. `.env` file is in `.gitignore`
+2. `config/firebase.ts` uses environment variables
+3. `.env.example` is committed (without real values)
+4. Firestore rules are properly configured
+5. Firebase API key has been reset
+6. Old API keys removed from Git history
 
 ### Additional Security Best Practices
 
@@ -111,11 +111,11 @@ If deleting and recreating the app isn't an option:
 
 ## Current Status
 
-- ✅ Environment variables configured
-- ✅ `.env` added to `.gitignore`
-- ⏳ **ACTION REQUIRED**: Reset Firebase API key (follow Step 1)
-- ⏳ **ACTION REQUIRED**: Update `.env` with new keys (follow Step 2)
-- ⏳ **OPTIONAL**: Remove keys from Git history (follow Step 4)
+- Environment variables configured
+- `.env` added to `.gitignore`
+-  **ACTION REQUIRED**: Reset Firebase API key (follow Step 1)
+-  **ACTION REQUIRED**: Update `.env` with new keys (follow Step 2)
+-  **OPTIONAL**: Remove keys from Git history (follow Step 4)
 
 ## Resources
 
