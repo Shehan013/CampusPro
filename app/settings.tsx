@@ -8,18 +8,23 @@ import {
   Image,
   Alert,
   Switch,
+  ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { doc, updateDoc, setDoc, getDoc } from 'firebase/firestore';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { db } from '@/config/firebase';
 import { Spacing, BorderRadius, FontSizes, FontWeights } from '@/constants/theme';
 
 export default function SettingsScreen() {
   const { colors, isDark, toggleTheme } = useTheme();
-  const { user, firebaseUser, signOut } = useAuth();
+  const { user, firebaseUser, signOut, updateUserProfile } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(user?.photoURL || null);
 
   const handlePhotoChange = async () => {
     try {
@@ -34,16 +39,111 @@ export default function SettingsScreen() {
         mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.8,
+        quality: 0.5, // Reduced quality for smaller file size
       });
 
-      if (!result.canceled && result.assets[0]) {
-        // TODO: Implement photo upload to Firebase Storage
-        Alert.alert('Success', 'Photo will be updated soon!');
+      if (!result.canceled && result.assets[0] && firebaseUser) {
+        setUploading(true);
+        
+        try {
+          const imageUri = result.assets[0].uri;
+          
+          // Convert image to base64 using fetch and FileReader
+          const response = await fetch(imageUri);
+          const blob = await response.blob();
+          
+          // Convert blob to base64
+          const reader = new FileReader();
+          const base64Promise = new Promise<string>((resolve, reject) => {
+            reader.onloadend = () => {
+              const base64data = reader.result as string;
+              resolve(base64data);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+          
+          const dataUri = await base64Promise;
+          
+          const userRef = doc(db, 'users', firebaseUser.uid);
+          
+          // Check if document exists
+          const userDoc = await getDoc(userRef);
+          
+          if (!userDoc.exists()) {
+            // Create the document if it doesn't exist
+            await setDoc(userRef, {
+              email: firebaseUser.email,
+              firstName: firebaseUser.displayName?.split(' ')[0] || '',
+              lastName: firebaseUser.displayName?.split(' ').slice(1).join(' ') || '',
+              photoURL: dataUri,
+              createdAt: new Date().toISOString(),
+            });
+          } else {
+            // Update existing document
+            await updateDoc(userRef, {
+              photoURL: dataUri,
+            });
+          }
+          
+          // Update AuthContext state
+          await updateUserProfile({ photoURL: dataUri });
+          
+          // Update local state to trigger re-render
+          setProfilePhoto(dataUri);
+          
+          Alert.alert('Success', 'Profile photo updated successfully!');
+        } catch (uploadError: any) {
+          console.error('Upload error:', uploadError);
+          Alert.alert('Error', 'Failed to update photo. Please try again.');
+        } finally {
+          setUploading(false);
+        }
       }
     } catch (error) {
+      console.error('Image picker error:', error);
       Alert.alert('Error', 'Failed to pick image');
+      setUploading(false);
     }
+  };
+
+  const handleDeletePhoto = async () => {
+    Alert.alert(
+      'Remove Photo',
+      'Are you sure you want to remove your profile photo?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              if (!firebaseUser) return;
+              
+              setUploading(true);
+              
+              const userRef = doc(db, 'users', firebaseUser.uid);
+              await updateDoc(userRef, {
+                photoURL: null,
+              });
+              
+              // Update AuthContext state
+              await updateUserProfile({ photoURL: null });
+              
+              // Update local state
+              setProfilePhoto(null);
+              
+              Alert.alert('Success', 'Profile photo removed successfully!');
+            } catch (error) {
+              console.error('Delete error:', error);
+              Alert.alert('Error', 'Failed to remove photo');
+            } finally {
+              setUploading(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleSignOut = () => {
@@ -127,10 +227,18 @@ export default function SettingsScreen() {
         {/* Profile Section */}
         <View style={styles.section}>
           <View style={[styles.profileCard, { backgroundColor: colors.surface }]}>
-            <TouchableOpacity onPress={handlePhotoChange} style={styles.photoContainer}>
-              {user?.photoURL || firebaseUser?.photoURL ? (
+            <TouchableOpacity 
+              onPress={handlePhotoChange} 
+              style={styles.photoContainer}
+              disabled={uploading}
+            >
+              {uploading ? (
+                <View style={[styles.profilePhotoPlaceholder, { backgroundColor: colors.primary }]}>
+                  <ActivityIndicator color="#FFFFFF" size="large" />
+                </View>
+              ) : profilePhoto || user?.photoURL || firebaseUser?.photoURL ? (
                 <Image 
-                  source={{ uri: user?.photoURL || firebaseUser?.photoURL || undefined }} 
+                  source={{ uri: profilePhoto || user?.photoURL || firebaseUser?.photoURL || undefined }} 
                   style={styles.profilePhoto}
                 />
               ) : (
@@ -140,9 +248,11 @@ export default function SettingsScreen() {
                   </Text>
                 </View>
               )}
-              <View style={[styles.editBadge, { backgroundColor: colors.primary }]}>
-                <Feather name="camera" size={14} color="#FFFFFF" />
-              </View>
+              {!uploading && (
+                <View style={[styles.editBadge, { backgroundColor: colors.primary }]}>
+                  <Feather name="camera" size={14} color="#FFFFFF" />
+                </View>
+              )}
             </TouchableOpacity>
             
             <View style={styles.profileInfo}>
@@ -152,6 +262,16 @@ export default function SettingsScreen() {
               <Text style={[styles.profileEmail, { color: colors.textSecondary }]}>
                 {user?.email || firebaseUser?.email}
               </Text>
+              
+              {(profilePhoto || user?.photoURL) && (
+                <TouchableOpacity 
+                  style={styles.deletePhotoButton}
+                  onPress={handleDeletePhoto}
+                >
+                  <Feather name="trash-2" size={16} color="#EF4444" />
+                  <Text style={styles.deletePhotoText}>Remove Photo</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </View>
@@ -337,6 +457,19 @@ const styles = StyleSheet.create({
   profileEmail: {
     fontSize: FontSizes.sm,
     fontWeight: FontWeights.regular,
+  },
+  deletePhotoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+  },
+  deletePhotoText: {
+    fontSize: FontSizes.sm,
+    fontWeight: FontWeights.medium,
+    color: '#EF4444',
   },
   settingItem: {
     flexDirection: 'row',
