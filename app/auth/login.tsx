@@ -23,7 +23,7 @@ import { Spacing, BorderRadius, FontSizes, FontWeights } from '@/constants/theme
 import { handleError } from '../../utils/errorHandler';
 
 export default function LoginScreen() {
-  const { colors } = useTheme();
+  const { colors, isDark, toggleTheme } = useTheme();
   const { signIn } = useAuth();
   const [loading, setLoading] = useState(false);
 
@@ -50,11 +50,7 @@ export default function LoginScreen() {
   };
 
   const handleForgotPassword = () => {
-    Alert.alert(
-      'Reset Password',
-      'Password reset will be implemented in the next phase',
-      [{ text: 'OK' }]
-    );
+    router.push('/auth/forgot-password' as any);
   };
 
   return (
@@ -73,6 +69,13 @@ export default function LoginScreen() {
             style={[styles.backButton, { backgroundColor: colors.surface }]}
           >
             <Feather name="arrow-left" size={24} color={colors.text} />
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            onPress={toggleTheme}
+            style={[styles.themeButton, { backgroundColor: colors.surface }]}
+          >
+            <Feather name={isDark ? "sun" : "moon"} size={24} color={colors.text} />
           </TouchableOpacity>
           
           <Text style={[styles.title, { color: colors.text }]}>Welcome Back</Text>
@@ -183,6 +186,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: Spacing.lg,
+  },
+  themeButton: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    width: 48,
+    height: 48,
+    borderRadius: BorderRadius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   title: {
     fontSize: FontSizes.xxxl,
