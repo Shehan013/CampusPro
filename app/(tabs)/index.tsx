@@ -1,98 +1,297 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import React, { useState, useMemo } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  TextInput,
+  StatusBar,
+} from 'react-native';
+import { Feather } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
+import EventCard from '@/components/EventCard';
+import { Event, EventFilter } from '@/types';
+import { sampleEvents } from '@/data/sampleEvents';
+import { Spacing, BorderRadius, FontSizes, FontWeights } from '@/constants/theme';
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const { colors, isDark, toggleTheme } = useTheme();
+  const { user } = useAuth();
+  const [activeFilter, setActiveFilter] = useState<EventFilter>('upcoming');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [events, setEvents] = useState<Event[]>(sampleEvents);
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const filteredEvents = useMemo(() => {
+    let filtered = [...events];
+
+    // Apply filter
+    switch (activeFilter) {
+      case 'upcoming':
+        filtered = filtered.filter(e => !e.isCompleted && new Date(e.date) >= new Date());
+        break;
+      case 'completed':
+        filtered = filtered.filter(e => e.isCompleted);
+        break;
+      case 'favorites':
+        filtered = filtered.filter(e => e.isFavorite && !e.isCompleted);
+        break;
+    }
+
+    // Apply search
+    if (searchQuery.trim()) {
+      filtered = filtered.filter(e =>
+        e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.type.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Sort by date
+    filtered.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    return filtered;
+  }, [events, activeFilter, searchQuery]);
+
+  const handleFavoriteToggle = (eventId: string) => {
+    setEvents(prevEvents =>
+      prevEvents.map(event =>
+        event.id === eventId ? { ...event, isFavorite: !event.isFavorite } : event
+      )
+    );
+  };
+
+  const handleEventPress = (event: Event) => {
+    // Navigate to event details
+    // router.push(`/event/${event.id}` as any);
+    console.log('Event pressed:', event.title);
+  };
+
+  const renderFilter = (filter: EventFilter, label: string, icon: keyof typeof Feather.glyphMap) => (
+    <TouchableOpacity
+      style={[
+        styles.filterButton,
+        {
+          backgroundColor: activeFilter === filter ? colors.primary : colors.surface,
+        },
+      ]}
+      onPress={() => setActiveFilter(filter)}
+    >
+      <Feather
+        name={icon}
+        size={18}
+        color={activeFilter === filter ? '#FFFFFF' : colors.textSecondary}
+      />
+      <Text
+        style={[
+          styles.filterText,
+          {
+            color: activeFilter === filter ? '#FFFFFF' : colors.textSecondary,
+          },
+        ]}
+      >
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      
+      {/* Header */}
+      <View style={[styles.header, { backgroundColor: colors.primary }]}>
+        <View style={styles.headerLeft}>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => router.push('/profile' as any)}
+          >
+            <Feather name="user" size={22} color="#FFFFFF" />
+          </TouchableOpacity>
+          <View>
+            <Text style={styles.greeting}>Hello, {user?.firstName || 'Student'}!</Text>
+          </View>
+        </View>
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={toggleTheme}
+        >
+          <Feather name={isDark ? 'sun' : 'moon'} size={22} color="#FFFFFF" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <View style={[styles.searchBar, { backgroundColor: colors.surface }]}>
+          <Feather name="search" size={20} color={colors.textSecondary} />
+          <TextInput
+            style={[styles.searchInput, { color: colors.text }]}
+            placeholder="Search events..."
+            placeholderTextColor={colors.textMuted}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Feather name="x" size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
+      {/* Filters */}
+      <View style={styles.filtersContainer}>
+        {renderFilter('upcoming', 'Upcoming', 'clock')}
+        {renderFilter('completed', 'Completed', 'check-circle')}
+        {renderFilter('favorites', 'Favorites', 'heart')}
+      </View>
+
+      {/* Events List */}
+      <FlatList
+        data={filteredEvents}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <EventCard
+            event={item}
+            onPress={() => handleEventPress(item)}
+            onFavoriteToggle={() => handleFavoriteToggle(item.id)}
+          />
+        )}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Feather name="calendar" size={64} color={colors.textMuted} />
+            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+              No events found
+            </Text>
+            <Text style={[styles.emptySubtext, { color: colors.textMuted }]}>
+              {activeFilter === 'favorites'
+                ? 'Mark events as favorite to see them here'
+                : 'Create your first event to get started'}
+            </Text>
+          </View>
+        }
+      />
+
+      {/* Floating Action Button */}
+      <TouchableOpacity
+        style={[styles.fab, { backgroundColor: colors.primary }]}
+        onPress={() => router.push('/event/create' as any)}
+      >
+        <Feather name="plus" size={28} color="#FFFFFF" />
+      </TouchableOpacity>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingTop: StatusBar.currentHeight ? StatusBar.currentHeight + Spacing.md : Spacing.xxl,
+    paddingBottom: Spacing.lg,
+    borderBottomLeftRadius: BorderRadius.xl,
+    borderBottomRightRadius: BorderRadius.xl,
+  },
+  headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: Spacing.md,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  greeting: {
+    fontSize: FontSizes.lg,
+    fontWeight: FontWeights.semibold,
+    color: '#FFFFFF',
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
+  headerButtons: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  iconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  searchContainer: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    height: 48,
+    borderRadius: BorderRadius.md,
+    gap: Spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: FontSizes.md,
+    fontWeight: FontWeights.regular,
+  },
+  filtersContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
+    gap: Spacing.sm,
+  },
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    gap: Spacing.xs,
+  },
+  filterText: {
+    fontSize: FontSizes.sm,
+    fontWeight: FontWeights.medium,
+  },
+  listContent: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: 100,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.xxl * 2,
+  },
+  emptyText: {
+    fontSize: FontSizes.lg,
+    fontWeight: FontWeights.semibold,
+    marginTop: Spacing.lg,
+  },
+  emptySubtext: {
+    fontSize: FontSizes.sm,
+    fontWeight: FontWeights.regular,
+    marginTop: Spacing.xs,
+    textAlign: 'center',
+    paddingHorizontal: Spacing.xl,
+  },
+  fab: {
     position: 'absolute',
+    bottom: Spacing.xl,
+    right: Spacing.lg,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
 });
