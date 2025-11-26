@@ -30,6 +30,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
         if (userDoc.exists()) {
           setUser(userDoc.data() as User);
+        } else {
+          const displayNameParts = firebaseUser.displayName?.split(' ') || [];
+          const basicUser: User = {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            firstName: displayNameParts[0] || 'User',
+            lastName: displayNameParts.slice(1).join(' ') || '',
+            photoURL: firebaseUser.photoURL || null,
+            createdAt: new Date().toISOString(),
+            emailVerified: firebaseUser.emailVerified,
+          };
+          setUser(basicUser);
         }
       } else {
         setUser(null);
