@@ -86,18 +86,6 @@ export default function EventCard({ event, onPress, onFavoriteToggle }: EventCar
           <Text style={[styles.title, { color: colors.text }]} numberOfLines={2}>
             {event.title}
           </Text>
-          {(event.imageUrl || event.description) && (
-            <TouchableOpacity
-              onPress={() => setIsExpanded(!isExpanded)}
-              style={styles.expandButton}
-            >
-              <Feather
-                name={isExpanded ? 'chevron-up' : 'chevron-down'}
-                size={20}
-                color={colors.textSecondary}
-              />
-            </TouchableOpacity>
-          )}
         </View>
 
         <View style={styles.infoRow}>
@@ -142,6 +130,20 @@ export default function EventCard({ event, onPress, onFavoriteToggle }: EventCar
           </View>
         )}
       </View>
+
+      {/* Collapse/Expand Button */}
+      {(event.imageUrl || event.description) && (
+        <TouchableOpacity
+          onPress={() => setIsExpanded(!isExpanded)}
+          style={[styles.collapseButton, { backgroundColor: colors.background }]}
+        >
+          <Feather
+            name={isExpanded ? 'chevron-up' : 'chevron-down'}
+            size={20}
+            color={colors.textSecondary}
+          />
+        </TouchableOpacity>
+      )}
     </TouchableOpacity>
   );
 }
@@ -205,8 +207,21 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.lg,
     fontWeight: FontWeights.bold,
   },
-  expandButton: {
-    padding: Spacing.xs,
+  collapseButton: {
+    position: 'absolute',
+    bottom: Spacing.sm,
+    right: Spacing.sm,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    zIndex: 1,
   },
   infoRow: {
     flexDirection: 'row',
